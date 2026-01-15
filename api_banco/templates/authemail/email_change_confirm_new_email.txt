@@ -1,0 +1,5 @@
+Confirmação de Alteração - JaverBank
+
+Por favor, confirme seu novo endereço de e-mail clicando no link abaixo:
+
+http://127.0.0.1:8001/email/change/verify/?code={{ code }}

@@ -1,0 +1,9 @@
+Bem-vindo ao JaverBank!
+
+Obrigado por criar sua conta. Estamos quase lá.
+Para ativar seu acesso, por favor verifique seu endereço de e-mail clicando no link abaixo:
+
+http://127.0.0.1:8001/signup/verify/?code={{ code }}
+
+Atenciosamente,
+Equipe JaverBank
