@@ -1,4 +1,4 @@
-# JaverBank API (Backend) 🏦
+# PYInvest API (Backend) 🏦
 
 API REST desenvolvida com **Django Rest Framework (DRF)** para gerenciar um sistema bancário simplificado. Este projeto atua como a fonte da verdade, gerenciando banco de dados, regras de negócio financeiras, autenticação e segurança.
 

@@ -1,9 +1,9 @@
-Bem-vindo ao JaverBank!
+Bem-vindo ao PYInvest!
 
 Obrigado por criar sua conta. Estamos quase lá.
 Para ativar seu acesso, por favor verifique seu endereço de e-mail clicando no link abaixo:
 
-http://127.0.0.1:8001/signup/verify/?code={{ code }}
+http://98.82.223.179/signup/verify/?code={{ code }}
 
 Atenciosamente,
-Equipe JaverBank
+Equipe PYInvest

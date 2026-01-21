@@ -30,7 +30,8 @@ SECRET_KEY = 'django-insecure-)w=2(39z_wr9&ml!%3-(rpy5or%9q$)=n5@97k)ruqzr_@b_t4
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'unoptional-inaccessibly-zachariah.ngrok-free.dev']
+CSRF_TRUSTED_ORIGINS = ['https://unoptional-inaccessibly-zachariah.ngrok-free.dev']
 
 
 # Application definition
@@ -49,19 +50,16 @@ INSTALLED_APPS = [
     'authemail',
     # aplicacoes
     'api_banco',
+    'investimentos',
 ]
 
 REST_FRAMEWORK = {
-    "DEFAULT_PAGINATION_CLASS": [
-        "rest_framework.pagination.PageNumberPagination",
-    ],
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.BasicAuthentication',
         'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.TokenAuthentication',
 
     ],
-    "PAGE_SIZE": 10,
 }
 
 MIDDLEWARE = [

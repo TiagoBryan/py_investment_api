@@ -89,6 +89,16 @@ class ContaCorrenteDeactivateAPIView(APIView):
                 {'error': 'A conta só pode ser desativada com saldo zerado.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
+        
+        if hasattr(request.user.pessoa, 'perfil_investidor'):
+            tem_investimentos = request.user.pessoa.perfil_investidor\
+                .investimentos.filter(ativo=True).exists()
+            if tem_investimentos:
+                return Response(
+                    {'error': 'Você possui investimentos ativos. Resgate \
+                     todos os valores antes de encerrar a conta.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
         conta.ativa = False
         conta.save()

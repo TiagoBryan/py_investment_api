@@ -87,7 +87,6 @@ class BankAPITest(APITestCase):
             password='123')
         user.is_verified = True  # type: ignore
         user.save()
-        # CPF no banco é final 44
         Pessoa.objects.create(user=user, cpf_cnpj='11122233344',
                               tipo_pessoa='F', nome='Login')
 
@@ -127,8 +126,6 @@ class BankAPITest(APITestCase):
         # Verifica se o usuario criado nao está verificado (segurança)
         user = User.objects.get(email='novo@api.com')
         self.assertFalse(user.is_verified)  # type: ignore
-
-        # No projeto API -> api_banco/tests.py
 
     def test_acesso_negado_sem_token(self):
         """Tenta sacar sem estar logado"""

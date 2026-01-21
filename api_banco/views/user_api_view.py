@@ -86,6 +86,16 @@ class UserDeactivateAPIView(APIView):
                      "há saldo na conta corrente. Zere o saldo primeiro."},
                     status=status.HTTP_400_BAD_REQUEST
                 )
+        
+        if hasattr(user.pessoa, 'perfil_investidor'):
+            tem_investimentos = user.pessoa.perfil_investidor\
+                                    .investimentos.filter(ativo=True).exists()
+            if tem_investimentos:
+                return Response(
+                    {"detail": "Não é possível excluir o usuário pois há \
+                    investimentos ativos. Resgate seus ativos primeiro."},
+                    status=status.HTTP_400_BAD_REQUEST
+                    )
 
         try:
             with transaction.atomic():
