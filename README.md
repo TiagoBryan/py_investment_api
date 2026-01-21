@@ -15,6 +15,7 @@ API REST desenvolvida com **Django Rest Framework (DRF)** para gerenciar um sist
   - Depósito e Saque.
   - Cálculo de Score de Crédito (Lógica centralizada).
   - Histórico de Movimentações.
+  - Sistema de investimentos
 - **Segurança:**
   - Endpoints protegidos por Token Authentication.
   - Validação de integridade de dados (CPF único, saldo não negativo).
@@ -31,8 +32,8 @@ API REST desenvolvida com **Django Rest Framework (DRF)** para gerenciar um sist
 
 1. **Clone o repositório:**
    ```bash
-   git clone https://github.com/TiagoBryan/Javer-Bank-Api.git
-   cd Javer-Bank-Api
+   git clone https://github.com/TiagoBryan/py_investment_api.git
+   cd py_investment_api
    ```
 
 2. **Crie e ative o ambiente virtual:**
