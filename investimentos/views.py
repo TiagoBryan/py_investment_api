@@ -12,15 +12,26 @@ from api_banco.models import Movimentacao
 
 
 class ClienteInvestidorViewSet(viewsets.ModelViewSet):
-    queryset = ClienteInvestidor.objects.all()
     serializer_class = ClienteInvestidorSerializer
     permission_classes = [IsAuthenticated]
 
+    def get_queryset(self):
+        user = self.request.user
+        return ClienteInvestidor.objects.filter(pessoa__user=user)
+
     def perform_create(self, serializer):
-        if hasattr(self.request.user, 'pessoa'):
-            serializer.save(pessoa=self.request.user.pessoa)  # type: ignore
-        else:
-            serializer.save()
+        serializer.save(pessoa=self.request.user.pessoa)  # type: ignore
+
+    def perform_destroy(self, instance):
+        
+        if instance.investimentos.filter(ativo=True).exists():
+            raise ValidationError(
+                "Não é possível cancelar o perfil pois existem investimentos "
+                "ativos. "
+                "Resgate todos os valores antes de continuar."
+            )
+        
+        instance.delete()
 
 
 class InvestimentoViewSet(viewsets.ModelViewSet):
