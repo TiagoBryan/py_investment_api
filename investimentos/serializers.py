@@ -6,8 +6,8 @@ class InvestimentoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Investimento
         fields = '__all__'
-        read_only_fields = ['id', 'cliente', 'data_aplicacao', 'rentabilidade', 
-                            'ativo']
+        read_only_fields = ['id', 'cliente', 'data_aplicacao', 
+                            'valor_investido', 'ativo', 'preco_medio']
 
 
 class ClienteInvestidorSerializer(serializers.ModelSerializer):

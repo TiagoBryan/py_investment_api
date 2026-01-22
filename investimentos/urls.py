@@ -1,6 +1,8 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from investimentos.views import ClienteInvestidorViewSet, InvestimentoViewSet
+from investimentos.views import (ClienteInvestidorViewSet, 
+                                 InvestimentoViewSet,
+                                 MarketProxyView)
 
 router = DefaultRouter()
 router.register(r'internal/clientes', ClienteInvestidorViewSet, 
@@ -10,4 +12,5 @@ router.register(r'internal/investimentos', InvestimentoViewSet,
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('internal/market/', MarketProxyView.as_view(), name='market_proxy'),
 ]

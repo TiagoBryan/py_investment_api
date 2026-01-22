@@ -3,6 +3,7 @@ from rest_framework import serializers
 from .models import Pessoa, ContaCorrente, Movimentacao
 from django.contrib.auth import authenticate
 from django.utils.translation import gettext_lazy as _
+from decimal import Decimal
 
 
 class MyUserSerializer(serializers.ModelSerializer):
@@ -123,7 +124,7 @@ class OperacaoSerializer(serializers.Serializer):
     valor = serializers.DecimalField(
         max_digits=15,
         decimal_places=2,
-        min_value=0.01
+        min_value=Decimal("0.01")
     )
 
 
