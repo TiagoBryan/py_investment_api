@@ -11,6 +11,7 @@ from investimentos.services import MarketDataService
 from api_banco.models import Movimentacao 
 from decimal import Decimal
 from rest_framework.views import APIView
+from investimentos.analytics import PortfolioAnalytics
 
 
 class ClienteInvestidorViewSet(viewsets.ModelViewSet):
@@ -55,13 +56,18 @@ class InvestimentoViewSet(viewsets.ModelViewSet):
         dados = serializer.validated_data
         
         tipo = dados.get('tipo_investimento')
-        ticker = dados.get('ticker')
-        quantidade = dados.get('quantidade')
+        
+        valor_total_transacao = Decimal(0)
+        preco_compra = Decimal(0)
+        quantidade_final = Decimal(0)
 
         if tipo in ['ACOES', 'FUNDOS', 'CRIPTO']:
+            ticker = dados.get('ticker')
+            quantidade = dados.get('quantidade')
+
             if not ticker or not quantidade:
-                raise ValidationError(
-                    "Para Renda Variável, informe Ticker e Quantidade.")
+                raise ValidationError("Para Renda Variável, informe Ticker e "
+                                      "Quantidade.")
             
             preco_atual = MarketDataService.validar_ticker(ticker)
             if preco_atual is None:
@@ -69,14 +75,28 @@ class InvestimentoViewSet(viewsets.ModelViewSet):
                     f"O ticker '{ticker}' não foi encontrado no mercado.")
             
             preco_compra = Decimal(str(preco_atual))
+            quantidade_final = quantidade
             valor_total_transacao = quantidade * preco_compra
             
         else:
-            # renda fixa logica antiga colocar
-            if not dados.get('valor_investido'):
-                # nao mandou json (read only) lidar com isso
-                pass
-            valor_total_transacao = Decimal(0)
+            valor_raw = self\
+                .request.data.get('valor_investido')  # type: ignore
+            
+            if not valor_raw:
+                raise ValidationError(
+                    "Para Renda Fixa, informe o campo 'valor_investido'.")
+            
+            try:
+                valor_total_transacao = Decimal(str(valor_raw))
+            except Exception:
+                raise ValidationError("Valor do investimento inválido.")
+
+            if valor_total_transacao <= 0:
+                raise ValidationError(
+                    "O valor do investimento deve ser positivo.")
+
+            preco_compra = Decimal("1.00")
+            quantidade_final = valor_total_transacao
 
         try:
             conta = user.pessoa.conta_corrente  # type: ignore
@@ -84,9 +104,9 @@ class InvestimentoViewSet(viewsets.ModelViewSet):
             raise ValidationError("Conta corrente não encontrada.")
 
         if conta.saldo < valor_total_transacao:
-            raise ValidationError(f"Saldo insuficiente. \
-                                  Custo da operação: \
-                                  R$ {valor_total_transacao:.2f}")
+            raise ValidationError(
+                f"Saldo insuficiente. Custo da operação: R$ \
+                    {valor_total_transacao:.2f}")
 
         with transaction.atomic():
             conta.saldo -= valor_total_transacao
@@ -98,10 +118,14 @@ class InvestimentoViewSet(viewsets.ModelViewSet):
                 valor=valor_total_transacao
             )
 
-            perfil = user.pessoa.perfil_investidor  # type: ignore
+            try:
+                perfil = user.pessoa.perfil_investidor  # type: ignore
+            except Exception:
+                raise ValidationError("Perfil de investidor não encontrado.")
 
             serializer.save(
                 cliente=perfil,
+                quantidade=quantidade_final,
                 preco_medio=preco_compra,
                 valor_investido=valor_total_transacao
             )
@@ -148,3 +172,44 @@ class MarketProxyView(APIView):
             return Response(results)
             
         return Response({'error': 'Invalid action'}, status=400)
+
+
+class PortfolioAnalyticsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, cliente_id=None):
+        """
+        Calcula a performance histórica da carteira do cliente.
+        URL: /api/internal/analytics/cliente/{id}/?periodo=1y
+        """
+        if not cliente_id and hasattr(request.user, 'pessoa'):
+            try:
+                cliente_id = request.user.pessoa.perfil_investidor.id
+            except Exception:
+                return Response({'error': 'Perfil não encontrado'}, status=404)
+
+        investimentos = Investimento.objects.filter(
+            cliente__id=cliente_id, 
+            ativo=True
+        )
+
+        if not investimentos.exists():
+            return Response({'error': 'Sem investimentos ativos'}, status=404)
+
+        periodo = request.query_params.get('periodo', '1y')
+        valid_periods = ['1mo', '3mo', '6mo', '1y', '2y', '5y', 'ytd']
+        if periodo not in valid_periods:
+            periodo = '1y'
+
+        try:
+            analytics = PortfolioAnalytics(investimentos)
+            dados = analytics.calcular_performance(periodo=periodo)
+            
+            if not dados:
+                return Response({'error': 'Dados insuficientes para cálculo'}, 
+                                status=400)
+                
+            return Response(dados)
+            
+        except Exception as e:
+            return Response({'error': str(e)}, status=500)

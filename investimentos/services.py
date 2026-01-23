@@ -1,4 +1,5 @@
 import yfinance as yf
+import pandas as pd
 
 
 class MarketDataService:
@@ -62,3 +63,90 @@ class MarketDataService:
     @staticmethod
     def get_cotacao_atual(ticker):
         return MarketDataService.validar_ticker(ticker)
+    
+    @staticmethod
+    def _normalizar_tickers(tickers):
+        """
+        Garante que tickers da B3 tenham .SA e remove duplicatas.
+        """
+        lista_limpa = []
+        for t in tickers:
+            t = t.upper().strip()
+            if '.' not in t and '-' not in t:
+                t += '.SA'
+            lista_limpa.append(t)
+        return list(set(lista_limpa))
+
+    @staticmethod
+    def get_historico_carteira(tickers, periodo="1y"):
+        if not tickers:
+            return pd.DataFrame()
+
+        tickers_formatados = MarketDataService._normalizar_tickers(tickers)
+        print(f"--- Baixando dados para: {tickers_formatados} ---")
+        
+        try:
+            dados = yf.download(
+                tickers_formatados, 
+                period=periodo, 
+                auto_adjust=False, 
+                progress=False,
+                threads=True
+            )
+
+            if dados.empty:  # type: ignore
+                print("--- YFinance retornou vazio ---")
+                return pd.DataFrame()
+
+            df_fechamento = pd.DataFrame()
+
+            if isinstance(dados.columns, pd.MultiIndex):  # type: ignore
+                try:
+                    
+                    if 'Adj Close' \
+                         in dados.columns.get_level_values(0):  # type: ignore
+                        df_fechamento = dados['Adj Close']  # type: ignore
+                    elif 'Close' \
+                            in \
+                            dados.columns.get_level_values(0):  # type: ignore
+                        df_fechamento = dados['Close']  # type: ignore
+                except Exception as e:
+                    print(f"Erro extraindo MultiIndex: {e}")
+
+            else:
+                coluna = 'Adj Close' if 'Adj Close' \
+                    in dados.columns else 'Close'  # type: ignore
+                if coluna in dados.columns:  # type: ignore
+                    ticker_nome = tickers_formatados[0]
+                    df_fechamento = pd.DataFrame(
+                        {ticker_nome: dados[coluna]})  # type: ignore
+
+            df_fechamento = df_fechamento.ffill().bfill().fillna(0)
+
+            return df_fechamento
+
+        except Exception as e:
+            print(f"Erro crítico no yfinance: {e}")
+            return pd.DataFrame()
+        
+    @staticmethod
+    def get_historico_benchmark(benchmark="^BVSP", periodo="1y"):
+        """
+        Baixa o histórico do índice de referência (Ibovespa, S&P500).
+        """
+        try:
+            ativo = yf.Ticker(benchmark)
+            hist = ativo.history(period=periodo)
+            
+            if hist.empty:
+                return pd.Series(dtype='float64')
+            
+            # Retorna apenas a serie de preços ajustados
+            serie = hist['Close']
+            serie.index = serie.index.tz_localize(None)  # type: ignore
+            
+            return serie
+            
+        except Exception as e:
+            print(f"Erro ao baixar benchmark {benchmark}: {e}")
+            return pd.Series(dtype='float64')
