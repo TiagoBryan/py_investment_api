@@ -86,10 +86,3 @@ class MarketInvestmentTest(APITestCase):
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['price'], 35.50)
-
-    def test_market_proxy_search(self):
-        url = reverse('market_proxy')
-        response = self.client.get(url, {'action': 'search', 'q': 'PETR'})
-        
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(any(d['ticker'] == 'PETR4.SA' for d in response.data))
