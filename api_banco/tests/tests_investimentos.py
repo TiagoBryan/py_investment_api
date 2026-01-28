@@ -14,7 +14,8 @@ class InvestimentosAPITest(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(  # type: ignore
             email='investidor@teste.com', 
-            password='123')
+            password='123'
+        )
         self.pessoa = Pessoa.objects.create(
             user=self.user, nome='Investidor', cpf_cnpj='11122233344', 
             tipo_pessoa='F'
@@ -31,17 +32,17 @@ class InvestimentosAPITest(APITestCase):
             patrimonio_total=Decimal('0.00')
         )
 
-        self.client.force_authenticate(user=self.user)  # type: ignore
+        self.client.force_authenticate(user=self.user)
 
-    @patch('investimentos.services.MarketDataService.validar_ticker')
-    def test_investir_sucesso_movimentacao_saldo(self, mock_ticker):
+    @patch('investimentos.services.MarketDataService.get_ticker_info')
+    def test_investir_sucesso_movimentacao_saldo(self, mock_info):
         """
-        ao investir em acoes:
-        1. Simula preço 20,00
-        2. Compra 10 (Total 200,00)
-        3. Deduz do saldo
+        Ao investir em acoes:
+        -simula preço 20,00 BRL
+        -compra 10 (Total 200,00)
+        -deduz do saldo
         """
-        mock_ticker.return_value = 20.00
+        mock_info.return_value = {'price': 20.00, 'currency': 'BRL'}
 
         url = reverse('investimento-list') 
         
@@ -61,10 +62,10 @@ class InvestimentosAPITest(APITestCase):
         self.assertEqual(mov.tipo_operacao, 'D')  # type: ignore
         self.assertEqual(mov.valor, Decimal('200.00'))  # type: ignore
 
-    @patch('investimentos.services.MarketDataService.validar_ticker')
-    def test_investir_sem_saldo(self, mock_ticker):
+    @patch('investimentos.services.MarketDataService.get_ticker_info')
+    def test_investir_sem_saldo(self, mock_info):
         """deve bloquear investimento maior que o saldo"""
-        mock_ticker.return_value = 150.00
+        mock_info.return_value = {'price': 150.00, 'currency': 'BRL'}
 
         url = reverse('investimento-list')
         
@@ -77,7 +78,7 @@ class InvestimentosAPITest(APITestCase):
         response = self.client.post(url, data)
         
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('Saldo insuficiente', str(response.data))  # type: ignore
+        self.assertIn('Saldo insuficiente', str(response.data))
 
         self.conta.refresh_from_db()
         self.assertEqual(self.conta.saldo, Decimal('1000.00'))
@@ -108,9 +109,7 @@ class InvestimentosAPITest(APITestCase):
         self.assertEqual(mov.tipo_operacao, 'C')  # type: ignore
 
     def test_tentar_excluir_perfil_com_investimento(self):
-        """
-        bloqueia exclusão do perfil se houver investimento ativo
-        """
+        """bloqueia exclusão do perfil se houver investimento ativo"""
         Investimento.objects.create(
             cliente=self.perfil,
             tipo_investimento='RENDA_FIXA',
@@ -122,11 +121,10 @@ class InvestimentosAPITest(APITestCase):
         response = self.client.delete(url)
         
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('investimentos ativos', 
-                      str(response.data))  # type: ignore
+        self.assertIn('investimentos ativos', str(response.data))
         
-        self.assertTrue(ClienteInvestidor
-                        .objects.filter(id=self.perfil.id).exists())
+        self.assertTrue(ClienteInvestidor.objects.filter(id=self.perfil.id)
+                        .exists())
 
     def test_atualizar_perfil_investidor(self):
         """testa mudar de moderado para arrojado"""

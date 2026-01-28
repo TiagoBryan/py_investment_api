@@ -28,15 +28,14 @@ class MarketInvestmentTest(APITestCase):
             patrimonio_total=0
         )
         
-        self.client.force_authenticate(user=self.user)  # type: ignore
+        self.client.force_authenticate(user=self.user)
 
-    @patch('investimentos.services.MarketDataService.validar_ticker')
-    def test_comprar_acao_calculo_correto(self, mock_ticker):
+    @patch('investimentos.services.MarketDataService.get_ticker_info')
+    def test_comprar_acao_calculo_correto(self, mock_info):
         """
-        deve calcular: 10 cotas * Preco50,00 = 500,00.
-        o saldo deve cair de 1000 para 500.
+        deve calcular 10 cotas * preco50,00 = 500,00
         """
-        mock_ticker.return_value = 50.00
+        mock_info.return_value = {'price': 50.00, 'currency': 'BRL'}
 
         url = reverse('investimento-list')
         data = {
@@ -49,7 +48,7 @@ class MarketInvestmentTest(APITestCase):
         
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         
-        mock_ticker.assert_called_with('PETR4')
+        mock_info.assert_called_with('PETR4')
 
         self.conta.refresh_from_db()
         self.assertEqual(self.conta.saldo, Decimal('500.00'))
@@ -60,11 +59,11 @@ class MarketInvestmentTest(APITestCase):
                          Decimal('10.00000000'))
         self.assertEqual(inv.preco_medio, Decimal('50.00'))  # type: ignore
         self.assertEqual(inv.valor_investido,  # type: ignore
-                         Decimal('500.00'))
+                         Decimal('500.00')) 
 
-    @patch('investimentos.services.MarketDataService.validar_ticker')
-    def test_comprar_ticker_inexistente(self, mock_ticker):
-        mock_ticker.return_value = None
+    @patch('investimentos.services.MarketDataService.get_ticker_info')
+    def test_comprar_ticker_inexistente(self, mock_info):
+        mock_info.return_value = None
 
         url = reverse('investimento-list')
         data = {'tipo_investimento': 'ACOES', 'ticker': 'XYZ99', 
@@ -73,26 +72,24 @@ class MarketInvestmentTest(APITestCase):
         response = self.client.post(url, data)
         
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('não foi encontrado', str(response.data))  # type: ignore
+        self.assertIn('não foi encontrado', str(response.data))
         
         self.conta.refresh_from_db()
         self.assertEqual(self.conta.saldo, Decimal('1000.00'))
 
-    # --- Proxy de Mercado (Autocomplete/Quote) ---
-    @patch('investimentos.services.MarketDataService.get_latest_price')
-    def test_market_proxy_quote(self, mock_price):
-        mock_price.return_value = 35.50
+    @patch('investimentos.services.MarketDataService.get_ticker_info')
+    def test_market_proxy_quote(self, mock_info):
+        mock_info.return_value = {'price': 35.50, 'currency': 'BRL'}
         
         url = reverse('market_proxy')
         response = self.client.get(url, {'action': 'quote', 'ticker': 'VALE3'})
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['price'], 35.50)  # type: ignore
+        self.assertEqual(response.data['price'], 35.50)
 
     def test_market_proxy_search(self):
         url = reverse('market_proxy')
         response = self.client.get(url, {'action': 'search', 'q': 'PETR'})
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(any(d['ticker'] == 'PETR4.SA' 
-                            for d in response.data))  # type: ignore
+        self.assertTrue(any(d['ticker'] == 'PETR4.SA' for d in response.data))
