@@ -36,8 +36,8 @@ class InvestimentosAPITest(APITestCase):
     @patch('investimentos.services.MarketDataService.validar_ticker')
     def test_investir_sucesso_movimentacao_saldo(self, mock_ticker):
         """
-        Ao investir em Ações:
-        1. Simula preço R$ 20,00
+        ao investir em acoes:
+        1. Simula preço 20,00
         2. Compra 10 (Total 200,00)
         3. Deduz do saldo
         """
@@ -63,7 +63,7 @@ class InvestimentosAPITest(APITestCase):
 
     @patch('investimentos.services.MarketDataService.validar_ticker')
     def test_investir_sem_saldo(self, mock_ticker):
-        """Deve bloquear investimento maior que o saldo"""
+        """deve bloquear investimento maior que o saldo"""
         mock_ticker.return_value = 150.00
 
         url = reverse('investimento-list')
@@ -83,7 +83,7 @@ class InvestimentosAPITest(APITestCase):
         self.assertEqual(self.conta.saldo, Decimal('1000.00'))
 
     def test_resgatar_investimento_devolve_dinheiro(self):
-        """Ao deletar investimento, o dinheiro deve voltar para a conta"""
+        """ao deletar investimento, o dinheiro deve voltar para a conta"""
         self.conta.saldo = Decimal('500.00')
         self.conta.save()
         
@@ -109,7 +109,7 @@ class InvestimentosAPITest(APITestCase):
 
     def test_tentar_excluir_perfil_com_investimento(self):
         """
-        Bloqueia exclusão do perfil se houver investimento ativo.
+        bloqueia exclusão do perfil se houver investimento ativo
         """
         Investimento.objects.create(
             cliente=self.perfil,
@@ -129,7 +129,7 @@ class InvestimentosAPITest(APITestCase):
                         .objects.filter(id=self.perfil.id).exists())
 
     def test_atualizar_perfil_investidor(self):
-        """Testa mudar de MODERADO para ARROJADO"""
+        """testa mudar de moderado para arrojado"""
         url = reverse('cliente-investidor-detail', args=[self.perfil.id])
         data = {'perfil_investidor': 'ARROJADO'}
         

@@ -30,35 +30,30 @@ class MarketInvestmentTest(APITestCase):
         
         self.client.force_authenticate(user=self.user)  # type: ignore
 
-    # --- Compra de Ações (Cenário de Sucesso) ---
     @patch('investimentos.services.MarketDataService.validar_ticker')
     def test_comprar_acao_calculo_correto(self, mock_ticker):
         """
-        Deve calcular: 10 cotas * Preço R$ 50,00 = R$ 500,00.
-        O saldo deve cair de 1000 para 500.
+        deve calcular: 10 cotas * Preco50,00 = 500,00.
+        o saldo deve cair de 1000 para 500.
         """
-        # O Yahoo Finance diz que PETR4 custa R$ 50.00
         mock_ticker.return_value = 50.00
 
         url = reverse('investimento-list')
         data = {
             'tipo_investimento': 'ACOES',
             'ticker': 'PETR4',
-            'quantidade': 10  # 10 ações
+            'quantidade': 10
         }
 
         response = self.client.post(url, data)
         
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         
-        # 1. Verifica se o Mock foi chamado
         mock_ticker.assert_called_with('PETR4')
 
-        # 2. Verifica Saldo (1000 - 500 = 500)
         self.conta.refresh_from_db()
         self.assertEqual(self.conta.saldo, Decimal('500.00'))
 
-        # 3. Verifica Investimento Criado
         inv = Investimento.objects.last()
         self.assertEqual(inv.ticker, 'PETR4')  # type: ignore
         self.assertEqual(inv.quantidade,  # type: ignore
@@ -67,10 +62,8 @@ class MarketInvestmentTest(APITestCase):
         self.assertEqual(inv.valor_investido,  # type: ignore
                          Decimal('500.00'))
 
-    # --- Ticker Inválido ---
     @patch('investimentos.services.MarketDataService.validar_ticker')
     def test_comprar_ticker_inexistente(self, mock_ticker):
-        # Yahoo Finance retorna None (não achou)
         mock_ticker.return_value = None
 
         url = reverse('investimento-list')
@@ -82,14 +75,12 @@ class MarketInvestmentTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('não foi encontrado', str(response.data))  # type: ignore
         
-        # Saldo não muda
         self.conta.refresh_from_db()
         self.assertEqual(self.conta.saldo, Decimal('1000.00'))
 
     # --- Proxy de Mercado (Autocomplete/Quote) ---
     @patch('investimentos.services.MarketDataService.get_latest_price')
     def test_market_proxy_quote(self, mock_price):
-        # Simula preço para consulta
         mock_price.return_value = 35.50
         
         url = reverse('market_proxy')

@@ -52,7 +52,7 @@ class MarketDataService:
     @staticmethod
     def _normalizar_tickers(tickers):
         """
-        Garante que tickers da B3 tenham .SA e remove duplicatas.
+        garante que tickers da B3 tenham .SA e remove duplicatas
         """
         lista_limpa = []
         for t in tickers:
@@ -117,7 +117,7 @@ class MarketDataService:
     @staticmethod
     def get_historico_benchmark(benchmark="^BVSP", periodo="1y"):
         """
-        Baixa o histórico do índice de referência (Ibovespa, S&P500).
+        baixa o historico do indice de referência (Ibovespa, S&P500).
         """
         try:
             ativo = yf.Ticker(benchmark)
@@ -126,7 +126,6 @@ class MarketDataService:
             if hist.empty:
                 return pd.Series(dtype='float64')
             
-            # Retorna apenas a serie de preços ajustados
             serie = hist['Close']
             serie.index = serie.index.tz_localize(None)  # type: ignore
             
@@ -138,7 +137,7 @@ class MarketDataService:
     
     @staticmethod
     def get_dolar_rate():
-        """Retorna a cotação atual do Dólar em Reais (USDBRL=X)"""
+        """retorna a cotacao atual do dolar em reais (USDBRL=X)"""
         try:
             usd = yf.Ticker("USDBRL=X")
             return float(usd.fast_info.last_price)  # type: ignore
@@ -148,7 +147,7 @@ class MarketDataService:
     @staticmethod
     def get_ticker_info(ticker):
         """
-        Retorna dicionário completo: { 'price': 100.0, 'currency': 'BRL' }
+        retorna dicionario completo: { 'price': 100.0, 'currency': 'BRL' }
         """
         try:
             ticker_obj = yf.Ticker(ticker)

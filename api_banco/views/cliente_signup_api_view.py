@@ -86,7 +86,6 @@ class CustomLoginAPIView(APIView):
         if serializer.is_valid():
             user = serializer.validated_data['user']  # type: ignore
 
-            # Gera ou recupera o token
             token, created = Token.objects.get_or_create(user=user)
 
             return Response(

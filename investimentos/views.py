@@ -185,7 +185,7 @@ class PortfolioAnalyticsView(APIView):
 
     def get(self, request, cliente_id=None):
         """
-        Calcula a performance histórica da carteira do cliente.
+        calcula a performance historica da carteira do cliente.
         URL: /api/internal/analytics/cliente/{id}/?periodo=1y
         """
         if not cliente_id and hasattr(request.user, 'pessoa'):

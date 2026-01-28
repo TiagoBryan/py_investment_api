@@ -6,7 +6,7 @@ from investimentos.services import MarketDataService
 class PortfolioAnalytics:
     def __init__(self, investimentos_queryset):
         """
-        Recebe um QuerySet de Investimentos (do Model).
+        recebe um queryset de investimentos do model.
         """
         self.investimentos = investimentos_queryset
         self.posicao_atual = {
@@ -18,22 +18,19 @@ class PortfolioAnalytics:
 
     def calcular_performance(self, periodo="1y", benchmark_ticker="^BVSP"):
         """
-        Gera todas as métricas necessárias para o Dashboard.
+        gera todas as metricas necessarias para o dashboard
         """
         if not self.tickers:
             return None
 
-        # Buscar Dados Históricos (Preços)
         df_precos = MarketDataService.get_historico_carteira(self.tickers, 
                                                              periodo)
         
         if df_precos.empty:
             return None
 
-        # Calcular a Curva de Patrimônio (Valor R$ Diário)
         df_saldo = df_precos.copy()
         
-        # Mapeamento para lidar com sulfixos (.SA) que o YFinance adiciona
         colunas_map = {}
         for col in df_precos.columns:
             ticker_sem_sa = col.replace('.SA', '')
@@ -49,14 +46,11 @@ class PortfolioAnalytics:
 
         df_saldo['Portfolio_Total'] = df_saldo.sum(axis=1)  # type: ignore
 
-        # Calcular Retornos Percentuais (Variação Diária)
         series_retorno_diario = df_saldo['Portfolio_Total'].pct_change()\
             .dropna()
         
-        # Calcular Retorno Acumulado (Curva % para gráfico)
         series_retorno_acumulado = (1 + series_retorno_diario).cumprod() - 1
 
-        # Processar Benchmark (Comparativo)
         serie_bench = MarketDataService.get_historico_benchmark(
             benchmark_ticker, periodo)
         if not serie_bench.empty:
@@ -67,11 +61,9 @@ class PortfolioAnalytics:
         else:
             bench_acumulado = pd.Series()
 
-        # Calcular Métricas Estatísticas (KPIs)
         metricas = self._calcular_kpis(series_retorno_diario, 
                                        series_retorno_acumulado)
 
-        # Preparar Dados para JSON (Frontend não lê Pandas/Numpy)
         return {
             "historico": {
                 "datas": [d.strftime('%Y-%m-%d') 

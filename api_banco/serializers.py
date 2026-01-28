@@ -7,9 +7,6 @@ from decimal import Decimal
 
 
 class MyUserSerializer(serializers.ModelSerializer):
-    """
-    Write your own User serializer.
-    """
     class Meta:
         model = get_user_model()
         fields = ('id', 'email', 'first_name', 'last_name')

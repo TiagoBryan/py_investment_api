@@ -7,9 +7,6 @@ from authemail.models import EmailAbstractUser, EmailUserManager
 
 
 class MyUser(EmailAbstractUser):
-    # Custom fields
-
-    # Required
     objects = EmailUserManager()
 
 

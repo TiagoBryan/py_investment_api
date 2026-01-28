@@ -71,11 +71,9 @@ class DepositoAPIView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Atualiza saldo
         conta.saldo += valor
         conta.save()
 
-        # Registra movimentação
         Movimentacao.objects.create(
             conta=conta,
             tipo_operacao='C',
@@ -116,11 +114,9 @@ class SaqueAPIView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Atualiza saldo
         conta.saldo -= valor
         conta.save()
 
-        # Registra movimentação
         Movimentacao.objects.create(
             conta=conta,
             tipo_operacao='D',

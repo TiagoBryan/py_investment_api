@@ -34,7 +34,7 @@ class ModelsTest(TestCase):
             Pessoa.objects.create(
                 user=user2,
                 tipo_pessoa='F',
-                cpf_cnpj='12345678900',  # Repetido
+                cpf_cnpj='12345678900',
                 nome='Impostor'
             )
 

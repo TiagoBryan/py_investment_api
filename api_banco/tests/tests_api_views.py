@@ -59,8 +59,7 @@ class BankAPITest(APITestCase):
         self.assertTrue(len(mail.outbox) > 0)
 
     def test_login_custom_sucesso(self):
-        """Testa se o login aceita CPF correto"""
-        # Cria usuario e pessoa
+        """testa se o login aceita cpf correto"""
         user = User.objects.create_user(
             email='login@teste.com',  # type: ignore
             password='123')
@@ -73,7 +72,7 @@ class BankAPITest(APITestCase):
         data = {
             'email': 'login@teste.com',
             'password': '123',
-            'cpf_cnpj': '111.222.333-44'  # Enviando ponto (serializer limpa)
+            'cpf_cnpj': '111.222.333-44'
         }
 
         response = self.client.post(url, data)
@@ -81,7 +80,7 @@ class BankAPITest(APITestCase):
         self.assertIn('token', response.data)  # type: ignore
 
     def test_login_custom_cpf_errado(self):
-        """Testa se o login rejeita CPF que não bate com o email"""
+        """testa se o login rejeita cpf que não bate com o email"""
         user = User.objects.create_user(
             email='login2@teste.com',  # type: ignore
             password='123')
@@ -94,18 +93,17 @@ class BankAPITest(APITestCase):
         data = {
             'email': 'login2@teste.com',
             'password': '123',
-            'cpf_cnpj': '99999999999'  # CPF diferente
+            'cpf_cnpj': '99999999999'
         }
 
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        # Verifica se a mensagem customizada apareceu
         self.assertTrue("não corresponde" in str(response
                                                  .data))  # type: ignore
 
     def test_signup_api_completo(self):
-        """Testa se o endpoint de cadastro cria User + Pessoa + Envia Email"""
-        url = reverse('api_signup_cliente')  # Verifique o name no urls.py
+        """testa se o endpoint de cadastro cria User + Pessoa + Envia Email"""
+        url = reverse('api_signup_cliente')
         data = {
             'first_name': 'Novo',
             'last_name': 'User',
@@ -119,22 +117,19 @@ class BankAPITest(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
-        # Verifica se criou no banco
         self.assertTrue(User.objects.filter(email='novo@api.com').exists())
         self.assertTrue(Pessoa.objects.filter(cpf_cnpj='55566677788').exists())
 
-        # Verifica se o usuario criado nao está verificado (segurança)
         user = User.objects.get(email='novo@api.com')
         self.assertFalse(user.is_verified)  # type: ignore
 
     def test_acesso_negado_sem_token(self):
-        """Tenta sacar sem estar logado"""
-        self.client.logout()  # Garante que não tem token
+        """tenta sacar sem estar logado"""
+        self.client.logout()
 
         url = reverse('api_saque')
         data = {'valor': '10.00'}
 
         response = self.client.post(url, data)
 
-        # Deve retornar 401 Unauthorized ou 403 Forbidden
         self.assertIn(response.status_code, [401, 403])
