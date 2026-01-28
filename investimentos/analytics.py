@@ -10,7 +10,7 @@ class PortfolioAnalytics:
         """
         self.investimentos = investimentos_queryset
         self.posicao_atual = {
-            inv.ticker.upper(): float(inv.quantidade) 
+            inv.ticker.upper(): float(inv.quantidade)
             for inv in investimentos_queryset 
             if inv.ticker and inv.quantidade > 0
         }

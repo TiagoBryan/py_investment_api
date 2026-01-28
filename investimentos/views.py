@@ -54,68 +54,67 @@ class InvestimentoViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         user = self.request.user
         dados = serializer.validated_data
-        
         tipo = dados.get('tipo_investimento')
         
-        valor_total_transacao = Decimal(0)
-        preco_compra = Decimal(0)
+        valor_total_transacao_brl = Decimal(0)
+        preco_compra_brl = Decimal(0)
         quantidade_final = Decimal(0)
+        ticker_final = None
 
         if tipo in ['ACOES', 'FUNDOS', 'CRIPTO']:
             ticker = dados.get('ticker')
             quantidade = dados.get('quantidade')
+            ticker_final = ticker
 
-            if not ticker or not quantidade:
-                raise ValidationError("Para Renda Variável, informe Ticker e "
-                                      "Quantidade.")
+            info_ativo = MarketDataService.get_ticker_info(ticker)
             
-            preco_atual = MarketDataService.validar_ticker(ticker)
-            if preco_atual is None:
+            if not info_ativo:
                 raise ValidationError(
-                    f"O ticker '{ticker}' não foi encontrado no mercado.")
+                    f"O ticker '{ticker}' não foi encontrado.")
             
-            preco_compra = Decimal(str(preco_atual))
+            preco_original = Decimal(str(info_ativo['price']))
+            moeda = info_ativo['currency']
+            
+            taxa_dolar = Decimal(1.0)
+            
+            if moeda == 'USD':
+                rate = MarketDataService.get_dolar_rate()
+                if not rate:
+                    raise ValidationError("Erro ao obter cotação do Dólar.")
+                taxa_dolar = Decimal(str(rate))
+                
+                preco_compra_brl = preco_original * taxa_dolar
+            else:
+                preco_compra_brl = preco_original
+
             quantidade_final = quantidade
-            valor_total_transacao = quantidade * preco_compra
+            valor_total_transacao_brl = quantidade * preco_compra_brl
             
         else:
             valor_raw = self\
                 .request.data.get('valor_investido')  # type: ignore
-            
-            if not valor_raw:
-                raise ValidationError(
-                    "Para Renda Fixa, informe o campo 'valor_investido'.")
-            
-            try:
-                valor_total_transacao = Decimal(str(valor_raw))
-            except Exception:
-                raise ValidationError("Valor do investimento inválido.")
-
-            if valor_total_transacao <= 0:
-                raise ValidationError(
-                    "O valor do investimento deve ser positivo.")
-
-            preco_compra = Decimal("1.00")
-            quantidade_final = valor_total_transacao
+            valor_total_transacao_brl = Decimal(str(valor_raw))
+            preco_compra_brl = Decimal("1.00")
+            quantidade_final = valor_total_transacao_brl
 
         try:
             conta = user.pessoa.conta_corrente  # type: ignore
         except Exception:
             raise ValidationError("Conta corrente não encontrada.")
 
-        if conta.saldo < valor_total_transacao:
+        if conta.saldo < valor_total_transacao_brl:
             raise ValidationError(
-                f"Saldo insuficiente. Custo da operação: R$ \
-                    {valor_total_transacao:.2f}")
+                f"Saldo insuficiente. Custo: R$ \
+                      {valor_total_transacao_brl:.2f}")
 
         with transaction.atomic():
-            conta.saldo -= valor_total_transacao
+            conta.saldo -= valor_total_transacao_brl
             conta.save()
 
             Movimentacao.objects.create(
                 conta=conta,
                 tipo_operacao='D',
-                valor=valor_total_transacao
+                valor=valor_total_transacao_brl
             )
 
             try:
@@ -125,9 +124,10 @@ class InvestimentoViewSet(viewsets.ModelViewSet):
 
             serializer.save(
                 cliente=perfil,
+                ticker=ticker_final,
                 quantidade=quantidade_final,
-                preco_medio=preco_compra,
-                valor_investido=valor_total_transacao
+                preco_medio=preco_compra_brl,
+                valor_investido=valor_total_transacao_brl
             )
 
     def perform_destroy(self, instance):
@@ -161,18 +161,24 @@ class MarketProxyView(APIView):
         
         if action == 'quote':
             ticker = request.query_params.get('ticker')
-            price = MarketDataService.get_latest_price(ticker)
-            if price:
-                return Response({'ticker': ticker.upper(), 'price': price})
-            return Response({'error': 'Não encontrado'}, status=404)
-            
-        elif action == 'search':
-            q = request.query_params.get('q')
-            results = MarketDataService.search_assets(q)
-            return Response(results)
-            
-        return Response({'error': 'Invalid action'}, status=400)
 
+            info = MarketDataService.get_ticker_info(ticker)
+            
+            if info:
+                response_data = {
+                    'ticker': ticker.upper(),
+                    'price': info['price'],
+                    'currency': info['currency']
+                }
+                
+                if info['currency'] == 'USD':
+                    response_data['exchange_rate'] = MarketDataService\
+                        .get_dolar_rate()
+                
+                return Response(response_data)
+                
+            return Response({'error': 'Não encontrado'}, status=404)
+        
 
 class PortfolioAnalyticsView(APIView):
     permission_classes = [IsAuthenticated]

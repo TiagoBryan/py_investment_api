@@ -42,23 +42,8 @@ class MarketDataService:
 
     @staticmethod
     def validar_ticker(ticker):
-        try:
-            ticker_busca = ticker.upper()
-            if not ticker_busca.endswith('.SA') and not ('-' in ticker_busca):
-                ticker_busca += '.SA'
-
-            ativo = yf.Ticker(ticker_busca)
-            
-            hist = ativo.history(period="1d")
-            
-            if hist.empty:
-                return None
-            
-            return round(float(hist['Close'].iloc[-1]), 2)
-            
-        except Exception as e:
-            print(f"Erro ao buscar ticker {ticker}: {e}")
-            return None
+        info = MarketDataService.get_ticker_info(ticker)
+        return info['price'] if info else None
 
     @staticmethod
     def get_cotacao_atual(ticker):
@@ -150,3 +135,43 @@ class MarketDataService:
         except Exception as e:
             print(f"Erro ao baixar benchmark {benchmark}: {e}")
             return pd.Series(dtype='float64')
+    
+    @staticmethod
+    def get_dolar_rate():
+        """Retorna a cotação atual do Dólar em Reais (USDBRL=X)"""
+        try:
+            usd = yf.Ticker("USDBRL=X")
+            return float(usd.fast_info.last_price)  # type: ignore
+        except Exception:
+            return 1.0
+        
+    @staticmethod
+    def get_ticker_info(ticker):
+        """
+        Retorna dicionário completo: { 'price': 100.0, 'currency': 'BRL' }
+        """
+        try:
+            ticker_obj = yf.Ticker(ticker)
+            price = ticker_obj.fast_info.last_price
+            
+            if not price:
+                hist = ticker_obj.history(period="1d")
+                if not hist.empty:
+                    price = hist['Close'].iloc[-1]
+                else:
+                    return None
+
+            currency = 'BRL'
+            ticker_upper = ticker.upper()
+            
+            if not ticker_upper.endswith('.SA') and ('-USD' in ticker_upper or 
+                                                     len(ticker_upper) <= 5):
+                currency = 'USD'
+
+            return {
+                'price': float(price),
+                'currency': currency
+            }
+        except Exception as e:
+            print(f"Erro ao buscar info do ticker {ticker}: {e}")
+            return None
