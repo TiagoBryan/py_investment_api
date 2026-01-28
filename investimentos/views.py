@@ -177,7 +177,7 @@ class MarketProxyView(APIView):
                 
                 return Response(response_data)
                 
-            return Response({'error': 'Não encontrado'}, status=404)
+        return Response({'error': 'Não encontrado'}, status=404)
         
 
 class PortfolioAnalyticsView(APIView):
